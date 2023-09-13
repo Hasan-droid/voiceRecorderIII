@@ -5,6 +5,7 @@ import Permissions from "react-native-permissions";
 import Sound from "react-native-sound";
 import AudioRecord from "react-native-audio-record";
 import { Buffer } from "buffer";
+import RFNS from "react-native-fs";
 export function VoiceRecorderIII({ yourName, style }) {
     let sound = null;
     const [recording, setRecording] = useState(false);
@@ -101,6 +102,9 @@ export function VoiceRecorderIII({ yourName, style }) {
                 console.error("sound not loaded", e);
             }
         }
+        const path = RFNS.DownloadDirectoryPath + `test-new${Date.now()}.wav`;
+        //save audio file to local storage on device
+        await RFNS.moveFile(audioFile, path);
         setPaused(false);
         Sound.setCategory("Playback");
         console.info("start playing", sound);
