@@ -6,7 +6,13 @@ import Sound from "react-native-sound";
 import AudioRecord from "react-native-audio-record";
 import { Buffer } from "buffer";
 import RFNS from "react-native-fs";
+// import MX from "mx";
+
 export function VoiceRecorderIII({ yourName, style }) {
+    //load this script source "path/to/mxui/mxui.js" in index.html
+    // const mx = new Mx();
+    // console.info("mx", mx);
+    // console.info("Mx", Mx);
     let sound = null;
     const [recording, setRecording] = useState(false);
     const [audioFile, setAudioFile] = useState("");
@@ -41,6 +47,9 @@ export function VoiceRecorderIII({ yourName, style }) {
         Permissions.request("microphone").then(response => {
             console.info("request permission", response);
         });
+        Permissions.request("storage").then(response => {
+            console.info("request permission", response);
+        });
     };
 
     const checkPermission = async () => {
@@ -51,10 +60,18 @@ export function VoiceRecorderIII({ yourName, style }) {
             buttonNegative: "Cancel",
             buttonPositive: "OK"
         });
+        const granted2 = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE, {
+            title: "Write Permission",
+            message: "App needs access to your storage ",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK"
+        });
         const p = await Permissions.check("microphone");
         console.info("permission", p);
+        const p2 = await Permissions.check("storage");
 
-        if (p === "authorized") {
+        if (p === "authorized" && p2 === "authorized") {
             console.info("permission granted");
             return true;
         }
@@ -71,8 +88,14 @@ export function VoiceRecorderIII({ yourName, style }) {
 
     const stop = async () => {
         if (!recording) return;
-        let audioFile = await AudioRecord.stop();
-        setAudioFile(audioFile);
+        let audioFileToSave = await AudioRecord.stop();
+        setAudioFile(audioFileToSave);
+        const path = RFNS.DownloadDirectoryPath + `test-new$${Date.now()}.wav`;
+        // //save audio file to local storage on device
+        //write the file as a wav file
+        const binaryToWrite = await RFNS.readFile(audioFileToSave, "base64");
+        RFNS.writeFile(path, binaryToWrite, "base64");
+
         setRecording(false);
     };
 
@@ -102,16 +125,16 @@ export function VoiceRecorderIII({ yourName, style }) {
                 console.error("sound not loaded", e);
             }
         }
-        const path = RFNS.DownloadDirectoryPath + `test-new${Date.now()}.wav`;
-        //save audio file to local storage on device
-        await RFNS.moveFile(audioFile, path);
+
         setPaused(false);
         Sound.setCategory("Playback");
         console.info("start playing", sound);
         if (sound === null) {
             sound = lastSound;
         }
+
         sound.play(success => {
+            console.info("finished playing", success);
             if (success) {
                 console.info("successfully finished playing");
                 setPaused(true);
